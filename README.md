@@ -1,4 +1,4 @@
-# essential
+# Essential
 
 **Download video and audio from almost any website with a few simple questions — no flags, no formats to memorise.**
 A friendly terminal front-end for [yt-dlp](https://github.com/yt-dlp/yt-dlp) (and, as an extra, [gallery-dl](https://github.com/mikf/gallery-dl)), built for macOS.
