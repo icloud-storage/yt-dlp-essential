@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "yt-dlp-essential"
+version = "1.1.0"
+description = "A friendly, guided terminal front-end for yt-dlp (macOS): essn"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Unlicense"
+keywords = ["yt-dlp", "youtube", "downloader", "cli", "macos"]
+dependencies = [
+    "yt-dlp[default]",
+    "gallery-dl",
+]
+
+[project.scripts]
+essn = "yt_essential.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["yt_essential"]
