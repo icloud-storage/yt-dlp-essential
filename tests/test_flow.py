@@ -1,5 +1,6 @@
 """Interactive-flow tests with a faked yt-dlp session (no network)."""
 import contextlib
+import io
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -26,7 +27,7 @@ def run(answers, probe_results, cfg=None, download=None):
             mock.patch('yt_essential.engine.Session.probe', probe), \
             mock.patch('yt_essential.engine.Session.download', download or fake_download), \
             mock.patch('yt_essential.cli.pick_base_dir', return_value=Path('/tmp/base')), \
-            contextlib.redirect_stdout(open('/dev/null', 'w')):
+            contextlib.redirect_stdout(io.StringIO()):
         code = cli.run_download(cfg, PLAYLIST['webpage_url'] if 'list' in str(probe_results) else 'https://x.example/v')
     return code, calls, probe
 

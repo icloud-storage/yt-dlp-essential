@@ -1,3 +1,4 @@
+import os
 import unittest
 from pathlib import Path
 
@@ -8,7 +9,7 @@ from yt_essential.engine import Plan, build_download_opts, needs_cookies, pretty
 class Opts(unittest.TestCase):
     def test_video_best(self):
         o = build_download_opts(Plan(outdir=Path('/x')))
-        self.assertEqual(o['paths']['home'], '/x/video')
+        self.assertEqual(os.path.normpath(o['paths']['home']), os.path.join(os.sep, 'x', 'video'))
         self.assertEqual(o['format'], 'bv*+ba/b')
         self.assertEqual(o['merge_output_format'], 'mp4')
         self.assertEqual(o['postprocessors'][0], {'key': 'FFmpegVideoRemuxer', 'preferedformat': 'mp4'})
@@ -35,7 +36,7 @@ class Opts(unittest.TestCase):
 
     def test_audio(self):
         o = build_download_opts(Plan(outdir=Path('/x'), kind='audio', audio_fmt='m4a'))
-        self.assertEqual(o['paths']['home'], '/x/audio')
+        self.assertEqual(os.path.normpath(o['paths']['home']), os.path.join(os.sep, 'x', 'audio'))
         self.assertEqual(o['postprocessors'][0]['preferredcodec'], 'm4a')
 
     def test_playlist(self):

@@ -1,26 +1,100 @@
 name: tests
-on: [push, pull_request]
+
+on:
+  push:
+  pull_request:
+
 jobs:
   test:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
-        python: ["3.10", "3.13"]
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        python: ["3.11", "3.12", "3.13", "3.14"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - name: Install ffmpeg
+
+      - name: Install FFmpeg (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg
+
+      - name: Install FFmpeg (Ubuntu)
+        if: runner.os == 'Linux'
         run: |
-          if [ "$RUNNER_OS" = "macOS" ]; then brew install ffmpeg; else sudo apt-get update && sudo apt-get install -y ffmpeg; fi
-      - run: python -m pip install -e .
-      - run: python -m unittest discover -s tests -t . -v
-  installer:
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install FFmpeg (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: choco install ffmpeg --yes --no-progress
+
+      - name: Install project
+        run: python -m pip install -e .
+
+      - name: Run unit and integration tests
+        run: python -m unittest discover -s tests -t . -v
+
+  bash-installer:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Syntax-check installer
+      - name: Syntax-check Bash installer
         run: bash -n install.sh
+  windows-installers-powershell:
+    name: Windows PowerShell 5.1 syntax check
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell scripts
+        shell: powershell
+        run: |
+          $files = Get-ChildItem -Path .\windows -Filter *.ps1 -File
+          if (-not $files) { throw 'No PowerShell scripts found.' }
+          $allErrors = @()
+          foreach ($file in $files) {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              $file.FullName, [ref]$tokens, [ref]$parseErrors
+            ) | Out-Null
+            if ($parseErrors) {
+              $allErrors += "[$($file.Name)] $($parseErrors | Out-String)"
+            }
+          }
+          if ($allErrors.Count -gt 0) {
+            $allErrors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host "PowerShell 5.1: all scripts parsed successfully."
+
+  windows-installers-pwsh:
+    name: PowerShell 7 syntax check
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell scripts
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path .\windows -Filter *.ps1 -File
+          if (-not $files) { throw 'No PowerShell scripts found.' }
+          $allErrors = @()
+          foreach ($file in $files) {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              $file.FullName, [ref]$tokens, [ref]$parseErrors
+            ) | Out-Null
+            if ($parseErrors) {
+              $allErrors += "[$($file.Name)] $($parseErrors | Out-String)"
+            }
+          }
+          if ($allErrors.Count -gt 0) {
+            $allErrors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host "PowerShell 7: all scripts parsed successfully."

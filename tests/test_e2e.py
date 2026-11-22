@@ -1,5 +1,6 @@
 """End-to-end: drive the real interactive flow against a local HTTP server (needs ffmpeg)."""
 import contextlib
+import io
 import functools
 import os
 import http.server
@@ -41,12 +42,13 @@ class EndToEnd(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.server.shutdown()
+        cls.server.server_close()
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
     def run_flow(self, answers, name):
         out = self.tmp / name
         cfg = dict(config.DEFAULTS, download_dir=str(out), ask_dir_each_time=False)
-        with mock.patch('builtins.input', side_effect=answers), contextlib.redirect_stdout(open('/dev/null', 'w')):
+        with mock.patch('builtins.input', side_effect=answers), contextlib.redirect_stdout(io.StringIO()):
             code = cli.run_download(cfg, self.url)
         return code, out
 
@@ -71,7 +73,7 @@ class EndToEnd(unittest.TestCase):
         self.assertAlmostEqual(dur, 2.0, delta=0.6)
 
     def test_bad_url_message(self):
-        with mock.patch('builtins.input', side_effect=['not a link']), contextlib.redirect_stdout(open('/dev/null', 'w')):
+        with mock.patch('builtins.input', side_effect=['not a link']), contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(cli.run_download(dict(config.DEFAULTS)), 1)
 
     def test_new_folder_is_saved_as_default(self):
@@ -79,7 +81,7 @@ class EndToEnd(unittest.TestCase):
         cfg = dict(config.DEFAULTS, download_dir=str(self.tmp / 'ignored'), ask_dir_each_time=True)
         with mock.patch('builtins.input', side_effect=['1', '1', '1', '2', str(custom)]), \
                 mock.patch('yt_essential.cli.config.save') as save, \
-                contextlib.redirect_stdout(open('/dev/null', 'w')):
+                contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(cli.run_download(cfg, self.url), 0)
         self.assertEqual(len(list((custom / 'video').glob('*.mp4'))), 1)
         self.assertEqual(cfg['download_dir'], str(custom))        # the menu will now show it
@@ -89,7 +91,7 @@ class EndToEnd(unittest.TestCase):
         cur = self.tmp / 'current'
         cfg = dict(config.DEFAULTS, download_dir=str(cur), ask_dir_each_time=True)
         with mock.patch('builtins.input', side_effect=['1', '1', '1', '1']), \
-                contextlib.redirect_stdout(open('/dev/null', 'w')):
+                contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(cli.run_download(cfg, self.url), 0)
         self.assertEqual(len(list((cur / 'video').glob('*.mp4'))), 1)
 
@@ -109,12 +111,13 @@ class GalleryFallback(unittest.TestCase):
         handler.log_message = lambda *a, **k: None
         server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), handler)
         threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
         self.addCleanup(server.shutdown)
         url = f'http://127.0.0.1:{server.server_address[1]}/pic.jpg'
         env = {k: v for k, v in os.environ.items() if 'proxy' not in k.lower()}
         cfg = dict(config.DEFAULTS, download_dir=str(tmp / 'out'), ask_dir_each_time=False)
         with mock.patch.dict(os.environ, env, clear=True), mock.patch('builtins.input', side_effect=[]), \
-                contextlib.redirect_stdout(open('/dev/null', 'w')):
+                contextlib.redirect_stdout(io.StringIO()):
             code = cli.run_download(cfg, url)
         self.assertEqual(code, 0)
         files = list((tmp / 'out' / 'gallery').rglob('*.jpg'))
