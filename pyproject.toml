@@ -4,12 +4,18 @@ build-backend = "hatchling.build"
 
 [project]
 name = "yt-dlp-essential"
-version = "1.1.0"
-description = "A friendly, guided terminal front-end for yt-dlp (macOS): essn"
+version = "1.1.0" # Bump together with yt_essential/__init__.py when cutting the release.
+description = "A friendly, guided terminal front-end for yt-dlp (macOS and Windows): essn"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Unlicense"
-keywords = ["yt-dlp", "youtube", "downloader", "cli", "macos"]
+keywords = ["yt-dlp", "youtube", "downloader", "cli", "macos", "windows", "gallery-dl"]
+classifiers = [
+    "Environment :: Console",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+]
 dependencies = [
     "yt-dlp[default]",
     "gallery-dl",
